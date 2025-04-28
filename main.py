@@ -33,17 +33,26 @@ def get_tokenizer():
 
 
 class PredictionRequest(BaseModel):
-    text: str
+    smiles: str
 
 
+#TODO: summarize prediction to a 
 @app.post("/predict")
 def predict(request: PredictionRequest, model=Depends(get_model), tokenizer=Depends(get_tokenizer)):
-    inputs = tokenizer(request.text, return_tensors="pt")
+    tastes = ["bitter", "sour", "sweet", "umami", "undefined"]
+
+    inputs = tokenizer(request.smiles, return_tensors="pt")
     with torch.no_grad():
         outputs = model(**inputs)
         predictions = outputs.logits.tolist()
-    return {"predictions": predictions}
+
+    predictions = predictions[0]
+    logger.info(f"Predicted values {predictions}")
+    leading_taste_index = predictions.index(max(predictions))
+    logger.info(f"Leading taste index {leading_taste_index} for taste {tastes[leading_taste_index]}")
+
+    return {"predictions": tastes[leading_taste_index]}
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8080)
